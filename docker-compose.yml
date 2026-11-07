@@ -1,0 +1,9 @@
+services:
+  web_agent:
+    image: web_agent:ori
+    container_name: web_agent
+    ports:
+      - "8000:8000"            # 宿主机端口:容器端口；改左边即可换外部端口
+    volumes:
+      - ./data:/app/toyagent_log   # 数据落盘到 Mac 的 ./data 目录
+    restart: unless-stopped
