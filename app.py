@@ -19,7 +19,7 @@ from logstore import SessionLogStore
 
 STATIC_DIR = Path(__file__).resolve().parent / "static"
 
-app = FastAPI(title="DeepSeek Web Chat")
+app = FastAPI(title="Web Agent")
 
 # 启动时加载配置与既有会话组。
 core.load_config()
@@ -227,7 +227,7 @@ if __name__ == "__main__":
 
     import uvicorn
 
-    parser = argparse.ArgumentParser(description="DeepSeek Web Chat")
+    parser = argparse.ArgumentParser(description="Web Agent")
     parser.add_argument(
         "--host",
         default=os.environ.get("DSH_WEB_HOST", "127.0.0.1"),

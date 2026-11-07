@@ -1,4 +1,4 @@
-# DeepSeek Web Chat（FastAPI · 仅流式）
+# Web Agent（FastAPI · 仅流式）
 
 以 `main.py` 为基础重构的本地交互网页。完全移除了非流式路径，只保留流式；日志按「会话组」维度管理，支持配置最大会话组数与单组最大日志条数。
 
