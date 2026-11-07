@@ -1,0 +1,34 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# ===== 虚拟环境 =====
+.venv/
+venv/
+env/
+ENV/
+
+# ===== 运行时数据（含 api_key 与对话日志，绝不能提交）=====
+toyagent_log/
+
+# ===== 本项目遗留的调试/临时目录 =====
+_pip_tmp/
+.tmp/
+_histtest/
+_wtest*
+
+# ===== 编辑器 / 系统 =====
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.log
+
+# ===== 本地环境变量 =====
+.env
+.env.*

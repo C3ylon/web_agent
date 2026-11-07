@@ -1,0 +1,4 @@
+openai
+httpx
+fastapi
+uvicorn
