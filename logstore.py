@@ -110,7 +110,7 @@ class SessionLogStore:
         with self._lock:
             return self.sessions.get(sid)
 
-    def list(self) -> list[dict]:
+    def list_sessions(self) -> list[dict]:
         with self._lock:
             items = []
             for s in reversed(self.sessions.values()):

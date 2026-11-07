@@ -97,7 +97,7 @@ def create_session(body: SessionCreate | None = None):
 
 @app.get("/api/sessions")
 def list_sessions():
-    return store.list()
+    return store.list_sessions()
 
 
 @app.get("/api/sessions/{sid}")
