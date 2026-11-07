@@ -223,6 +223,7 @@
     height: 7px; cursor: ns-resize; border: 1px solid var(--border);
     border-bottom: none; border-radius: 6px 6px 0 0;
     background: var(--reasoning-bg); user-select: none; flex-shrink: 0;
+    touch-action: none;
   }
   .resize-handle:hover { background: var(--accent); }
   .input-box textarea {
@@ -289,15 +290,82 @@
     margin: 0; padding: 8px 10px; border-top: 1px solid var(--border);
     font-size: 12px; white-space: pre-wrap; word-break: break-all; background: #fafbfc;
   }
+
+  /* 汉堡按钮与遮罩（默认隐藏，仅移动端显示） */
+  #btn-menu { display: none; font-size: 18px; padding: 5px 10px; line-height: 1; }
+  #sidebar-backdrop { display: none; }
+
+  /* ===== 移动端适配 ===== */
+  @media (max-width: 768px) {
+    #btn-menu { display: inline-block; }
+    header { padding: 8px 10px; gap: 8px; }
+    header h1 { font-size: 15px; }
+
+    /* 侧栏 -> 抽屉 */
+    aside {
+      position: fixed;
+      top: 0; left: 0; bottom: 0;
+      width: 270px;
+      max-width: 82vw;
+      z-index: 100;
+      transform: translateX(-100%);
+      transition: transform 0.22s ease;
+      box-shadow: 2px 0 14px rgba(0, 0, 0, 0.18);
+    }
+    aside.open { transform: translateX(0); }
+    #sidebar-backdrop {
+      display: block;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.42);
+      z-index: 99;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.22s ease;
+    }
+    #sidebar-backdrop.show { opacity: 1; pointer-events: auto; }
+
+    /* 配置表单单列 */
+    .cfg-grid { grid-template-columns: 1fr; max-width: none; }
+    .cfg-grid label { margin-top: 6px; }
+    .cfg-grid .full { grid-column: 1; }
+
+    /* 初始消息行单列 */
+    .msg-row { grid-template-columns: 1fr; }
+    .msg-row .msg-reasoning { grid-column: 1; }
+
+    /* 输入区换行，按钮均分 */
+    .input-row { flex-wrap: wrap; }
+    .input-box { flex-basis: 100%; }
+    .input-row button { flex: 1; min-height: 44px; }
+
+    /* 触控目标与防 iOS 聚焦放大 */
+    button { min-height: 40px; }
+    .tabs button { padding: 12px 14px; }
+    .session-item { padding: 12px; }
+    .session-item .act, .session-item .del { visibility: visible; padding: 6px; }
+    .input-box textarea,
+    .msg-row .msg-role,
+    .msg-row .msg-content,
+    .msg-row .msg-reasoning,
+    .cfg-grid input,
+    .cfg-grid textarea,
+    .editor-wrap textarea { font-size: 16px; }
+
+    /* 面板留白收紧 */
+    #output, #config-panel, #logs-panel { margin: 8px; padding: 12px; }
+  }
 </style>
 </head>
 <body>
 <header>
+  <button id="btn-menu" aria-label="菜单">☰</button>
   <h1>DeepSeek Web Chat</h1>
   <span style="color:var(--muted);font-size:13px">仅流式</span>
   <span class="spacer"></span>
   <button class="primary" id="btn-new">＋ 新建会话</button>
 </header>
+<div id="sidebar-backdrop"></div>
 
 <div class="layout">
   <aside>
@@ -652,6 +720,7 @@ async function newSession() {
   await api('/api/sessions', { method: 'POST' });
   await loadSessions();
   if (state.sessions.length) selectSession(state.sessions[0].id);
+  closeMobileDrawer();
 }
 
 async function selectSession(id) {
@@ -1070,28 +1139,55 @@ function initInputResize() {
   if (!ta || !handle) return;
   const MIN_H = 44, MAX_H = 260;
   let dragging = false, startY = 0, startH = 0;
-  handle.addEventListener('mousedown', (e) => {
+
+  // 用 Pointer Events 统一鼠标与触屏拖拽
+  handle.addEventListener('pointerdown', (e) => {
     e.preventDefault();
     dragging = true;
     startY = e.clientY;
     startH = ta.offsetHeight;
+    handle.setPointerCapture(e.pointerId);
     document.body.style.cursor = 'ns-resize';
     document.body.style.userSelect = 'none';
   });
-  document.addEventListener('mousemove', (e) => {
+  handle.addEventListener('pointermove', (e) => {
     if (!dragging) return;
     const dy = startY - e.clientY; // 向上拖为正 -> 变高
     const h = Math.max(MIN_H, Math.min(MAX_H, startH + dy));
     ta.style.height = h + 'px';
   });
-  document.addEventListener('mouseup', () => {
+  const endDrag = () => {
     if (!dragging) return;
     dragging = false;
     document.body.style.cursor = '';
     document.body.style.userSelect = '';
+  };
+  handle.addEventListener('pointerup', endDrag);
+  handle.addEventListener('pointercancel', endDrag);
+}
+
+function closeMobileDrawer() {
+  const aside = document.querySelector('aside');
+  const backdrop = $('sidebar-backdrop');
+  if (aside) aside.classList.remove('open');
+  if (backdrop) backdrop.classList.remove('show');
+}
+
+function initMobileNav() {
+  const aside = document.querySelector('aside');
+  const btn = $('btn-menu');
+  const backdrop = $('sidebar-backdrop');
+  if (!aside || !btn || !backdrop) return;
+  const open = () => { aside.classList.add('open'); backdrop.classList.add('show'); };
+  btn.onclick = () => (aside.classList.contains('open') ? closeMobileDrawer() : open());
+  backdrop.onclick = closeMobileDrawer;
+  // 点选会话后自动收起抽屉
+  $('session-list').addEventListener('click', () => {
+    if (window.matchMedia('(max-width: 768px)').matches) closeMobileDrawer();
   });
 }
 initInputResize();
+initMobileNav();
 
 (async function init() {
   try {
