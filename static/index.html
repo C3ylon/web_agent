@@ -201,6 +201,10 @@
   .hist-role { font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 3px; }
   .hist-user .hist-role { color: var(--accent); }
   .hist-assistant .hist-role { color: #859900; }
+
+  /* 流式中的助手消息（历史区下方，实时更新） */
+  #stream-box { display: none; margin-bottom: 12px; }
+  .stream-role { font-size: 12px; font-weight: 600; color: #859900; margin-bottom: 4px; }
   .hist-body {
     background: var(--bg); border: 1px solid var(--border);
     border-radius: 6px; padding: 8px 12px; word-break: break-word;
@@ -393,12 +397,15 @@
     <!-- 对话 -->
     <section class="tab-panel active" id="chat-panel">
       <div id="output">
-        <div id="reasoning-box">
-          <details open><summary>思考过程</summary><div id="reasoning-text"></div></details>
-        </div>
-        <div id="tools-box"></div>
         <div id="history-box">选择一个会话，或输入消息开始对话。</div>
-        <div id="content-text"></div>
+        <div id="stream-box">
+          <div class="stream-role">助手</div>
+          <div id="reasoning-box">
+            <details open><summary>思考过程</summary><div id="reasoning-text"></div></details>
+          </div>
+          <div id="tools-box"></div>
+          <div id="content-text"></div>
+        </div>
       </div>
       <div id="status"></div>
 
@@ -795,6 +802,11 @@ function clearStream() {
   $('reasoning-text').textContent = '';
   $('reasoning-box').style.display = 'none';
   $('tools-box').innerHTML = '';
+  $('stream-box').style.display = 'none';
+}
+
+function showStream() {
+  $('stream-box').style.display = 'block';
 }
 
 function clearOutput() {
@@ -909,11 +921,13 @@ function renderUsage(usage) {
 }
 
 function appendReasoning(text) {
+  showStream();
   $('reasoning-box').style.display = 'block';
   $('reasoning-text').textContent += text;
 }
 
 function appendContent(text) {
+  showStream();
   state.rawContent += text;
   if (!state.renderTimer) {
     state.renderTimer = setTimeout(() => { state.renderTimer = null; renderContent(); }, 60);
@@ -966,6 +980,7 @@ function highlightQuotes(root) {
 }
 
 function appendTool(obj) {
+  showStream();
   const box = $('tools-box');
   const line = document.createElement('span');
   line.className = 'tool-line';
@@ -998,6 +1013,7 @@ function appendTool(obj) {
 }
 
 function appendError(msg) {
+  showStream();
   const el = document.createElement('div');
   el.style.color = 'var(--danger)';
   el.textContent = '⚠ ' + msg;
