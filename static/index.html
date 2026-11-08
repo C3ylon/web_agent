@@ -130,37 +130,39 @@
   #reasoning-box summary { cursor: pointer; font-weight: 600; }
   #reasoning-text { white-space: pre-wrap; word-break: break-word; margin-top: 6px; }
   #tools-box { margin-bottom: 6px; }
-  #content-text { word-break: break-word; }
+  #content-text, #history-box { word-break: break-word; }
   .quote { color: var(--orange); font-weight: 600; }
 
-  /* Markdown 渲染样式 */
-  #content-text p { margin: 0 0 10px; }
+  /* Markdown 渲染样式（流式正文 + 历史记录共用） */
+  #content-text p, #history-box p { margin: 0 0 10px; }
   #content-text h1, #content-text h2, #content-text h3,
-  #content-text h4, #content-text h5, #content-text h6 {
+  #content-text h4, #content-text h5, #content-text h6,
+  #history-box h1, #history-box h2, #history-box h3,
+  #history-box h4, #history-box h5, #history-box h6 {
     margin: 16px 0 8px; line-height: 1.3; color: var(--text);
   }
-  #content-text h1 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-  #content-text h2 { font-size: 1.3em; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
-  #content-text h3 { font-size: 1.15em; }
-  #content-text code {
+  #content-text h1, #history-box h1 { font-size: 1.5em; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  #content-text h2, #history-box h2 { font-size: 1.3em; border-bottom: 1px solid var(--border); padding-bottom: 4px; }
+  #content-text h3, #history-box h3 { font-size: 1.15em; }
+  #content-text code, #history-box code {
     background: var(--code-bg); padding: 1px 5px; border-radius: 3px;
     font-family: "Consolas", "Menlo", monospace; font-size: 0.9em;
   }
-  #content-text pre {
+  #content-text pre, #history-box pre {
     background: var(--code-bg); padding: 10px 12px; border-radius: 6px;
     overflow-x: auto; margin: 8px 0;
   }
-  #content-text pre code { background: none; padding: 0; }
-  #content-text blockquote {
+  #content-text pre code, #history-box pre code { background: none; padding: 0; }
+  #content-text blockquote, #history-box blockquote {
     border-left: 3px solid var(--accent); margin: 8px 0; padding: 4px 12px;
     color: var(--muted); background: var(--reasoning-bg); border-radius: 0 4px 4px 0;
   }
-  #content-text ul, #content-text ol { padding-left: 24px; margin: 6px 0; }
-  #content-text a { color: var(--accent); }
-  #content-text table { border-collapse: collapse; margin: 8px 0; }
-  #content-text th, #content-text td { border: 1px solid var(--border); padding: 4px 10px; }
-  #content-text hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
-  #content-text img { max-width: 100%; }
+  #content-text ul, #content-text ol, #history-box ul, #history-box ol { padding-left: 24px; margin: 6px 0; }
+  #content-text a, #history-box a { color: var(--accent); }
+  #content-text table, #history-box table { border-collapse: collapse; margin: 8px 0; }
+  #content-text th, #content-text td, #history-box th, #history-box td { border: 1px solid var(--border); padding: 4px 10px; }
+  #content-text hr, #history-box hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+  #content-text img, #history-box img { max-width: 100%; }
 
   .tool-line {
     display: inline-block;
@@ -185,6 +187,14 @@
     word-break: break-all;
   }
   #status { padding: 0 16px 8px; color: var(--muted); font-size: 12px; min-height: 18px; }
+  .usage-box { display: inline-block; font-size: 12px; }
+  .usage-box summary { cursor: pointer; color: var(--muted); }
+  .usage-box pre {
+    margin: 4px 0 0; padding: 8px; background: var(--code-bg);
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 11px; white-space: pre-wrap; word-break: break-all;
+    max-width: 86vw; max-height: 200px; overflow: auto;
+  }
 
   /* 历史会话渲染 */
   .hist-user, .hist-assistant { margin-bottom: 12px; }
@@ -387,7 +397,8 @@
           <details open><summary>思考过程</summary><div id="reasoning-text"></div></details>
         </div>
         <div id="tools-box"></div>
-        <div id="content-text">选择一个会话，或输入消息开始对话。</div>
+        <div id="history-box">选择一个会话，或输入消息开始对话。</div>
+        <div id="content-text"></div>
       </div>
       <div id="status"></div>
 
@@ -775,7 +786,8 @@ function scrollOutputToBottom() {
   }
 }
 
-function clearOutput() {
+function clearStream() {
+  // 只清空「正在流式」的区域（历史记录保留）
   state.rawContent = '';
   state.outputPinned = true;
   if (state.renderTimer) { clearTimeout(state.renderTimer); state.renderTimer = null; }
@@ -783,6 +795,12 @@ function clearOutput() {
   $('reasoning-text').textContent = '';
   $('reasoning-box').style.display = 'none';
   $('tools-box').innerHTML = '';
+}
+
+function clearOutput() {
+  // 清空历史 + 流式区域
+  $('history-box').innerHTML = '';
+  clearStream();
 }
 
 function renderMarkdownInto(el, text) {
@@ -799,8 +817,9 @@ function renderMarkdownInto(el, text) {
 }
 
 function renderHistory(messages) {
-  clearOutput();
-  const container = $('content-text');
+  clearStream();
+  const container = $('history-box');
+  container.innerHTML = '';
   const msgs = messages || [];
   for (const m of msgs) {
     const role = m.role;
@@ -866,6 +885,27 @@ function renderHistory(messages) {
     container.textContent = '该会话还没有消息。';
   }
   $('output').scrollTop = $('output').scrollHeight;
+}
+
+function renderUsage(usage) {
+  // 完成提示 + 折叠的 token 用量（避免长 JSON 溢出，尤其手机横屏）
+  const status = $('status');
+  status.textContent = '';
+  const doneSpan = document.createElement('span');
+  doneSpan.textContent = '完成';
+  status.appendChild(doneSpan);
+  if (!usage) return;
+  const total = (usage.total_tokens != null) ? usage.total_tokens : null;
+  const det = document.createElement('details');
+  det.className = 'usage-box';
+  const s = document.createElement('summary');
+  s.textContent = (total != null) ? `Token 用量（共 ${total}）` : 'Token 用量';
+  const pre = document.createElement('pre');
+  pre.textContent = JSON.stringify(usage, null, 2);
+  det.appendChild(s);
+  det.appendChild(pre);
+  status.appendChild(document.createTextNode(' · '));
+  status.appendChild(det);
 }
 
 function appendReasoning(text) {
@@ -990,8 +1030,9 @@ function handleSSEBlock(block) {
     case 'done':
       state.messages = obj.messages;
       renderEditor();
-      const u = obj.usage ? ` · tokens ${JSON.stringify(obj.usage)}` : '';
-      setStatus('完成' + u);
+      // 把完成的回复合并进历史区，保持统一（带角色标签）
+      renderHistory(state.messages);
+      renderUsage(obj.usage);
       loadSessions();
       break;
     case 'error':
@@ -1021,7 +1062,9 @@ async function send(extraUserText) {
   state.sending = true;
   $('btn-send').disabled = $('btn-send-editor').disabled = $('btn-regen').disabled = true;
   setStatus('请求中…');
-  clearOutput();
+  // 保留历史：把要发送的 messages（含刚追加的 user 消息）渲染到上方，
+  // 流式回复显示在其下方。
+  renderHistory(messages);
 
   try {
     const resp = await fetch(`/api/sessions/${state.currentId}/stream`, {
