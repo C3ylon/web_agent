@@ -747,6 +747,8 @@ async function selectSession(id) {
   state.messages = s.messages || [];
   renderEditor();
   renderHistory(state.messages);
+  state.outputPinned = true;
+  scrollToBottomForce();
   setStatus('');
   renderSessions();
   if (document.querySelector('.tab.active').dataset.tab === 'logs') renderLogs();
@@ -793,10 +795,13 @@ function scrollOutputToBottom() {
   }
 }
 
+function scrollToBottomForce() {
+  $('output').scrollTop = $('output').scrollHeight;
+}
+
 function clearStream() {
-  // 只清空「正在流式」的区域（历史记录保留）
+  // 只清空「正在流式」的区域（历史记录保留）；不动 outputPinned
   state.rawContent = '';
-  state.outputPinned = true;
   if (state.renderTimer) { clearTimeout(state.renderTimer); state.renderTimer = null; }
   $('content-text').innerHTML = '';
   $('reasoning-text').textContent = '';
@@ -862,6 +867,7 @@ function renderHistory(messages) {
       div.appendChild(label);
       if (m.reasoning_content) {
         const det = document.createElement('details');
+        det.open = true;
         const s = document.createElement('summary');
         s.textContent = '思考过程';
         const pre = document.createElement('pre');
@@ -896,7 +902,6 @@ function renderHistory(messages) {
   if (!msgs.length) {
     container.textContent = '该会话还没有消息。';
   }
-  $('output').scrollTop = $('output').scrollHeight;
 }
 
 function renderUsage(usage) {
@@ -1050,6 +1055,8 @@ function handleSSEBlock(block) {
       renderEditor();
       // 把完成的回复合并进历史区，保持统一（带角色标签）
       renderHistory(state.messages);
+      // 仅在用户仍在底部跟随时才滚到底；正在上翻浏览则不跳转
+      scrollOutputToBottom();
       renderUsage(obj.usage);
       loadSessions();
       break;
@@ -1083,6 +1090,8 @@ async function send(extraUserText) {
   // 保留历史：把要发送的 messages（含刚追加的 user 消息）渲染到上方，
   // 流式回复显示在其下方。
   renderHistory(messages);
+  state.outputPinned = true;
+  scrollToBottomForce();
 
   try {
     const resp = await fetch(`/api/sessions/${state.currentId}/stream`, {
