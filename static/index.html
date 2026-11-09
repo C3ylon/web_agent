@@ -165,16 +165,16 @@
   #content-text img, #history-box img { max-width: 100%; }
 
   .tool-line {
-    display: inline-block;
-    margin: 4px 4px 4px 0;
-    padding: 2px 8px;
+    display: block;
+    margin: 4px 0;
+    padding: 4px 8px;
     background: #e9f2df;
     border: 1px solid #c8d9b0;
     border-radius: 4px;
     font-size: 12px;
     color: #6b7a33;
   }
-  .tool-line details { display: inline-block; }
+  .tool-line details { display: block; margin-top: 2px; }
   .tool-line summary { cursor: pointer; }
   .tool-line pre {
     margin: 4px 0 0;
@@ -924,11 +924,13 @@ function appendReasoning(text) {
   showStream();
   $('reasoning-box').style.display = 'block';
   $('reasoning-text').textContent += text;
+  scrollOutputToBottom();
 }
 
 function appendContent(text) {
   showStream();
   state.rawContent += text;
+  scrollOutputToBottom();  // 立即跟随，避免「助手」标签停在半截
   if (!state.renderTimer) {
     state.renderTimer = setTimeout(() => { state.renderTimer = null; renderContent(); }, 60);
   }
